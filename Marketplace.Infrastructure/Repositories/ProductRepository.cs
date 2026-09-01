@@ -88,7 +88,7 @@ namespace Marketplace.Infrastructure.Repositories
                 query = query.Where(p => p.Price <= maxPrice);
             }
 
-            if(string.IsNullOrWhiteSpace(condition))
+            if(!string.IsNullOrWhiteSpace(condition))
             {
                 query = query.Where(p => p.Condition.ToString() == condition);
             }
