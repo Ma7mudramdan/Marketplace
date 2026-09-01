@@ -1,0 +1,750 @@
+# Marketplace/.gitignore
+
+## ========================================
+## .NET / ASP.NET Core Specific
+## ========================================
+TestConsole/
+# appsettings.json
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww]in32/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+
+## ========================================
+## Configuration Files with Secrets
+## ========================================
+
+# Environment configuration files
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+appsettings.*.json
+*.secrets
+secrets.json
+secrets.*.json
+
+# User secrets
+secrets.json
+*.secrets
+
+# Environment variables
+.env
+.env.*
+.env.local
+.env.*.local
+
+# Connection strings file
+connectionstrings.config
+
+
+## ========================================
+## Package Management
+## ========================================
+
+# NuGet packages
+*.nupkg
+*.snupkg
+packages/
+*.nupkg.metadata
+*.nuget.props
+*.nuget.targets
+
+# NuGet Symbol Packages
+*.symbols.nupkg
+
+# The packages folder can be ignored because of Package Restore
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+!**/[Pp]ackages/repositories.config
+
+# If using .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+
+## ========================================
+## Test Results
+## ========================================
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og/
+*.trx
+*.coverage
+*.coveragexml
+*.coveragejson
+*.testsettings
+
+# Test harness files
+*.VisualState.xml
+TestResult.xml
+
+# xUnit
+*.xunit.runner.xml
+
+# MSTest
+*.testsettings
+
+
+## ========================================
+## Database Files
+## ========================================
+
+# SQL Server files
+*.mdf
+*.ldf
+*.ndf
+
+# SQLite files
+*.db
+*.sqlite
+*.sqlite3
+
+# Entity Framework
+*.efcore
+*.edmx
+*.dbmdl
+
+
+## ========================================
+## Logs
+## ========================================
+
+# Log files
+logs/
+*.log
+*.logs
+*.log.[0-9]*
+*.log.[0-9][0-9]*
+*.log.[0-9][0-9][0-9]*
+
+# Serilog logs
+logs/
+*.txt
+*.log
+
+
+## ========================================
+## Temporary Files
+## ========================================
+
+# Windows image file cache
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+
+# Mac files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux files
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+*.cached
+*.pid
+*.seed
+*.pid.lock
+*.lock
+
+
+## ========================================
+## IDE / Editor Files
+## ========================================
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# Notepad++
+*.bak
+
+
+## ========================================
+## Node.js / JavaScript (if any frontend)
+## ========================================
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+
+## ========================================
+## Docker / Container Files
+## ========================================
+
+# Docker
+docker-compose.override.yml
+*.dockerignore
+
+
+## ========================================
+## Application Specific
+## ========================================
+
+# Project specific
+Marketplace.TestConsole/bin/
+Marketplace.TestConsole/obj/
+
+# Uploaded files
+wwwroot/uploads/
+wwwroot/images/products/
+!wwwroot/images/products/placeholder.txt
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Error reports
+*.mdmp
+*.iTrace
+
+# Crash reports
+*.crash
+
+
+## ========================================
+## GitHub / Version Control
+## ========================================
+
+# GitHub specific
+*.github/
+!.github/workflows/
+
+# Git
+*.orig
+*.rej
+
+
+## ========================================
+## Miscellaneous
+## ========================================
+
+# Compiled Python files
+*.pyc
+
+# Compiled Java files
+*.class
+
+# Compiled C/C++ files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Compiled Rust files
+*.rlib
+*.rmeta
+
+# Compiled Go files
+*.exe
+*.test
+
+
+## ========================================
+## Certificate files
+## ========================================
+
+# Certificate files
+*.pfx
+*.p12
+*.pem
+*.crt
+*.key
+*.cer
+
+
+## ========================================
+## Other common ignores
+## ========================================
+
+# Fody - auto-generated
+FodyWeavers.xsd
+
+# AxoCover - Code coverage
+*.axocover
+
+# Benchmark results
+BenchmarkDotNet.Artifacts/
+
+# StyleCop
+StyleCopReport.xml
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET Core
+**/wwwroot/lib/
+**/wwwroot/dist/
+
+# Azure Functions
+local.settings.json
+
+# Azure App Service
+*.publishsettings
+*.pubxml.user
+*.publishsettings
+*.pubxml.user
+*.publishsettings
+*.pubxml.user# Marketplace/.gitignore
+
+## ========================================
+## .NET / ASP.NET Core Specific
+## ========================================
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww]in32/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+
+## ========================================
+## Configuration Files with Secrets
+## ========================================
+
+# Environment configuration files
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+appsettings.*.json
+*.secrets
+secrets.json
+secrets.*.json
+
+# User secrets
+secrets.json
+*.secrets
+
+# Environment variables
+.env
+.env.*
+.env.local
+.env.*.local
+
+# Connection strings file
+connectionstrings.config
+
+
+## ========================================
+## Package Management
+## ========================================
+
+# NuGet packages
+*.nupkg
+*.snupkg
+packages/
+*.nupkg.metadata
+*.nuget.props
+*.nuget.targets
+
+# NuGet Symbol Packages
+*.symbols.nupkg
+
+# The packages folder can be ignored because of Package Restore
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+!**/[Pp]ackages/repositories.config
+
+# If using .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+
+## ========================================
+## Test Results
+## ========================================
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og/
+*.trx
+*.coverage
+*.coveragexml
+*.coveragejson
+*.testsettings
+
+# Test harness files
+*.VisualState.xml
+TestResult.xml
+
+# xUnit
+*.xunit.runner.xml
+
+# MSTest
+*.testsettings
+
+
+## ========================================
+## Database Files
+## ========================================
+
+# SQL Server files
+*.mdf
+*.ldf
+*.ndf
+
+# SQLite files
+*.db
+*.sqlite
+*.sqlite3
+
+# Entity Framework
+*.efcore
+*.edmx
+*.dbmdl
+
+
+## ========================================
+## Logs
+## ========================================
+
+# Log files
+logs/
+*.log
+*.logs
+*.log.[0-9]*
+*.log.[0-9][0-9]*
+*.log.[0-9][0-9][0-9]*
+
+# Serilog logs
+logs/
+*.txt
+*.log
+
+
+## ========================================
+## Temporary Files
+## ========================================
+
+# Windows image file cache
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+
+# Mac files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux files
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+*.cached
+*.pid
+*.seed
+*.pid.lock
+*.lock
+
+
+## ========================================
+## IDE / Editor Files
+## ========================================
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# Notepad++
+*.bak
+
+
+## ========================================
+## Node.js / JavaScript (if any frontend)
+## ========================================
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+
+## ========================================
+## Docker / Container Files
+## ========================================
+
+# Docker
+docker-compose.override.yml
+*.dockerignore
+
+
+## ========================================
+## Application Specific
+## ========================================
+
+# Project specific
+Marketplace.TestConsole/bin/
+Marketplace.TestConsole/obj/
+
+# Uploaded files
+wwwroot/uploads/
+wwwroot/images/products/
+!wwwroot/images/products/placeholder.txt
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Error reports
+*.mdmp
+*.iTrace
+
+# Crash reports
+*.crash
+
+
+## ========================================
+## GitHub / Version Control
+## ========================================
+
+# GitHub specific
+*.github/
+!.github/workflows/
+
+# Git
+*.orig
+*.rej
+
+
+## ========================================
+## Miscellaneous
+## ========================================
+
+# Compiled Python files
+*.pyc
+
+# Compiled Java files
+*.class
+
+# Compiled C/C++ files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Compiled Rust files
+*.rlib
+*.rmeta
+
+# Compiled Go files
+*.exe
+*.test
+
+
+## ========================================
+## Certificate files
+## ========================================
+
+# Certificate files
+*.pfx
+*.p12
+*.pem
+*.crt
+*.key
+*.cer
+
+
+## ========================================
+## Other common ignores
+## ========================================
+
+# Fody - auto-generated
+FodyWeavers.xsd
+
+# AxoCover - Code coverage
+*.axocover
+
+# Benchmark results
+BenchmarkDotNet.Artifacts/
+
+# StyleCop
+StyleCopReport.xml
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET Core
+**/wwwroot/lib/
+**/wwwroot/dist/
+
+# Azure Functions
+local.settings.json
+
+# Azure App Service
+*.publishsettings
+*.pubxml.user
+*.publishsettings
+*.pubxml.user
+*.publishsettings
+*.pubxml.user
