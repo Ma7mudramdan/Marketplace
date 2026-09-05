@@ -205,12 +205,10 @@ namespace Marketplace.Application.Services
                     _ => products.OrderByDescending(p => p.CreatedAt)
                 };
 
-                if(searchDto.Ascending)
-                    products = products.OrderBy(p => p.Price);
 
                 var totalCount = products.Count();
                 var pagedProducts = products
-                                    .Skip((searchDto.Page - 1) * searchDto.PageSize)
+                                    .Skip((searchDto.Page-1) * searchDto.PageSize)
                                     .Take(searchDto.PageSize)
                                     .ToList();
 
