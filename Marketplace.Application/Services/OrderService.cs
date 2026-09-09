@@ -165,7 +165,7 @@ namespace Marketplace.Application.Services
                 order.DiscountAmount = discountAmount;
                 order.TaxAmount = subtotal * 0.14m;
                 order.ShippingCost = CalculateShippingCost(order);
-                order.TotalAmount = order.Subtotal + order.TaxAmount + order.ShippingCost - order.DiscountAmount;
+                order.TotalAmount = order.Subtotal + order.TaxAmount + order.ShippingCost;
 
                 // 7. Save order
                 await _orderRepository.AddAsync(order);
