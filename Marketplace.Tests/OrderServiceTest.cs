@@ -7,8 +7,10 @@ using Marketplace.Application.Services;
 using Marketplace.Domain.Entities;
 using Marketplace.Domain.Entities.Enums;
 using Marketplace.Domain.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NuGet.ContentModel;
 
 namespace Marketplace.Tests
 {
@@ -150,5 +152,439 @@ namespace Marketplace.Tests
             await Assert.ThrowsAsync<Exception>(
                 () => _orderService.GetUserOrdersAsync(10));
         }
+
+        [Fact]
+        public async Task GetOrdersByStatusAsync_Should_Return_MappedOrders()
+        {
+            //Arrange
+            var orders = new List<Order>
+            {
+                new Order{ Id = 1,Status = OrderStatus.Pending },
+                new Order{Id = 2,Status = OrderStatus.Pending },
+                new Order{Id=3,Status = OrderStatus.Processing }
+            };
+
+            var expectedOrders = new List<OrderDto>
+            {
+                new OrderDto{ Id = 1,Status = OrderStatus.Pending.ToString() },
+                new OrderDto{Id = 2,Status = OrderStatus.Pending.ToString() },
+            };
+
+            _orderRepoMock.Setup(repo => repo.GetOrdersByStatusAsync("Pending"))
+                .ReturnsAsync(orders);
+
+            _mapperMock.Setup(m => m.Map<IEnumerable<OrderDto>>(It.IsAny<IEnumerable<Order>>()))
+                .Returns(expectedOrders);
+
+            //Act 
+            var res = await _orderService.GetOrdersByStatusAsync("Pending");
+
+
+            //Assert
+
+            res.Should().NotBeNull();
+            Assert.Equal(2, res.Count());
+            _mapperMock.Verify(
+                m => m.Map<IEnumerable<OrderDto>>(It.IsAny<IEnumerable<Order>>()),
+                Times.Once
+                );
+
+            Assert.All(res, x =>
+                 Assert.Equal(OrderStatus.Pending.ToString(), x.Status));
+        }
+
+        [Fact]
+        public async Task GetOrdersByStatusAsync_Should_Throw_When_RepositoryThrows()
+        {
+            // Arrange
+            _orderRepoMock
+                .Setup(x => x.GetOrdersByStatusAsync("Pending"))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act & Assert
+            await Assert.ThrowsAsync<Exception>(
+                () => _orderService.GetOrdersByStatusAsync("Pending"));
+        }
+
+        [Fact]
+        public async Task CreateOrderAsync_Should_Throw_When_CartIsEmpty()
+        {
+            //Arrange
+            var transaction = new Mock<IDisposable>();
+
+            _orderRepoMock.Setup(x => x.BeginTransactionAsync())
+                .ReturnsAsync(transaction.Object);
+
+            _cartRepoMock.Setup(repo => repo.GetCartWithItemsAsync(10))
+                .ReturnsAsync((ShoppingCart?)null);
+
+
+            var dto = new CreateOrderDto();
+
+            // Act & Assert
+
+            await Assert.ThrowsAsync<InvalidOperationException>
+                (() => _orderService.CreateOrderAsync(dto, 10));
+
+            _orderRepoMock.Verify(
+                x => x.RollbackTransactionAsync(),
+                Times.Once
+                );
+
+            _orderRepoMock.Verify(
+                x => x.CommitTransactionAsync(),
+                Times.Never
+                );
+        }
+
+        [Fact]
+        public async Task CreateOrderAsync_Should_Throw_When_CartHasNoItems()
+        {
+            //Arrange
+            var transaction = new Mock<IDisposable>();
+
+            _orderRepoMock.Setup(x => x.BeginTransactionAsync())
+                .ReturnsAsync(transaction.Object);
+
+            _cartRepoMock.Setup(x => x.GetCartItemCountAsync(10))
+                .ReturnsAsync(0);
+
+            //Act & Assert
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _orderService.CreateOrderAsync(new CreateOrderDto(), 10));
+
+            _orderRepoMock.Verify(x => x.RollbackTransactionAsync(), Times.Once);
+            _orderRepoMock.Verify(x => x.CommitTransactionAsync(), Times.Never);
+
+
+        }
+
+        [Fact]
+        public async Task CreateOrderAsync_Should_Throw_When_ProductDoesNotExist()
+        {
+            //Arrange
+            var transaction = new Mock<IDisposable>();
+
+            _orderRepoMock.Setup(x => x.BeginTransactionAsync())
+                .ReturnsAsync(transaction.Object);
+
+            var cart = new ShoppingCart {
+                Items = new List<CartItem> {new CartItem { ProductId = 1, Quantity = 2 } }
+                };
+
+            _cartRepoMock
+                .Setup(x => x.GetCartWithItemsAsync(10))
+                .ReturnsAsync(cart);
+
+            _productRepoMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync((Product?)null);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _orderService.CreateOrderAsync(new CreateOrderDto(), 10));
+
+            _orderRepoMock.Verify(
+                x => x.RollbackTransactionAsync(),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateOrderAsync_Should_Throw_When_StockIsInsufficient()
+        {
+            // Arrange
+            var transaction = new Mock<IDisposable>();
+
+            _orderRepoMock.Setup(x => x.BeginTransactionAsync())
+                .ReturnsAsync(transaction.Object);
+
+            var cart = new ShoppingCart
+            {
+                Items = new List<CartItem> { new CartItem { ProductId = 1, Quantity = 10 } }
+            };
+
+            var product = new Product
+            {
+                Id = 1,
+                Name = "Laptop",
+                Price = 100,
+                StockQuantity = 5
+            };
+
+            _cartRepoMock
+                .Setup(x => x.GetCartWithItemsAsync(10))
+                .ReturnsAsync(cart);
+
+            _productRepoMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(product);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _orderService.CreateOrderAsync(new CreateOrderDto(), 10));
+
+            _orderRepoMock.Verify(
+                x => x.RollbackTransactionAsync(),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateOrderAsync_Should_Create_Order_And_Update_Stock()
+        {
+            // Arrange
+            var transaction = new Mock<IDisposable>();
+
+            _orderRepoMock.Setup(x => x.BeginTransactionAsync())
+                .ReturnsAsync(transaction.Object);
+
+            var cart = new ShoppingCart
+            {
+                Items = new List<CartItem> { new CartItem { ProductId = 1, Quantity = 2 } }
+            };
+
+            var product = new Product
+            {
+                Id = 1,
+                Name = "Laptop",
+                Price = 50,
+                StockQuantity = 10,
+                SoldQuantity = 0
+            };
+
+            var orderDto = new OrderDto
+            {
+                Id = 1,
+                CustomerId = 10,
+                Status = OrderStatus.Pending.ToString()
+            };
+
+            _cartRepoMock
+                .Setup(x => x.GetCartWithItemsAsync(10))
+                .ReturnsAsync(cart);
+
+            _productRepoMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(product);
+
+            _orderRepoMock
+                .Setup(x => x.AddAsync(It.IsAny<Order>()))
+                .Returns(Task.CompletedTask);
+
+            _mapperMock
+                .Setup(x => x.Map<OrderDto>(It.IsAny<Order>()))
+                .Returns(orderDto);
+
+            // Act
+            var result = await _orderService.CreateOrderAsync(
+                new CreateOrderDto(),
+                10);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(1, result.Id);
+
+            Assert.Equal(8, product.StockQuantity);
+            Assert.Equal(2, product.SoldQuantity);
+
+            _productRepoMock.Verify(
+                x => x.Update(product),
+                Times.Once);
+
+            _orderRepoMock.Verify(
+                x => x.AddAsync(It.Is<Order>(o =>
+                    o.CustomerId == 10 &&
+                    o.Status == OrderStatus.Pending &&
+                    o.PaymentStatus == PaymentStatus.Pending &&
+                    o.Subtotal == 100 &&
+                    o.TaxAmount == 14 &&
+                    o.ShippingCost == 0 &&
+                    o.TotalAmount == 114)),
+                Times.Once);
+
+            _cartRepoMock.Verify(
+                x => x.ClearCartAsync(10),
+                Times.Once);
+
+            _orderRepoMock.Verify(
+                x => x.CommitTransactionAsync(),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateOrderAsync_Should_Use_DiscountedPrice_When_Available()
+        {
+            // Arrange
+            var transaction = new Mock<IDisposable>();
+
+            _orderRepoMock.Setup(x => x.BeginTransactionAsync())
+                .ReturnsAsync(transaction.Object);
+
+            var cart = new ShoppingCart
+            {
+                Items = new List<CartItem> { new CartItem { ProductId = 1, Quantity = 2 } }
+            };
+
+            var product = new Product
+            {
+                Id = 1,
+                Name = "Phone",
+                Price = 100,
+                DiscountedPrice = 80,
+                StockQuantity = 10,
+                SoldQuantity = 0
+            };
+
+            _cartRepoMock
+                .Setup(x => x.GetCartWithItemsAsync(10))
+                .ReturnsAsync(cart);
+
+            _productRepoMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(product);
+
+            _orderRepoMock
+                .Setup(x => x.AddAsync(It.IsAny<Order>()))
+                .Returns(Task.CompletedTask);
+
+            _mapperMock
+                .Setup(x => x.Map<OrderDto>(It.IsAny<Order>()))
+                .Returns(new OrderDto());
+
+            // Act
+            await _orderService.CreateOrderAsync(
+                new CreateOrderDto(),
+                10);
+
+            // Assert
+            _orderRepoMock.Verify(
+                x => x.AddAsync(It.Is<Order>(o =>
+                    o.Subtotal == 160 &&
+                    o.DiscountAmount == 40 &&
+                    o.TaxAmount == 22.4m &&
+                    o.ShippingCost == 0 &&
+                    o.TotalAmount == 182.4m)),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateOrderAsync_Should_Use_10_Shipping_When_Subtotal_Is_Less_Than_100()
+        {
+            // Arrange
+            var transaction = new Mock<IDisposable>();
+
+            _orderRepoMock.Setup(x => x.BeginTransactionAsync())
+                .ReturnsAsync(transaction.Object);
+
+            var cart = new ShoppingCart
+            {
+                Items = new List<CartItem> { new CartItem { ProductId = 1, Quantity = 1 } }
+            };
+
+            var product = new Product
+            {
+                Id = 1,
+                Name = "Mouse",
+                Price = 50,
+                StockQuantity = 10
+            };
+
+            _cartRepoMock
+                .Setup(x => x.GetCartWithItemsAsync(10))
+                .ReturnsAsync(cart);
+
+            _productRepoMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(product);
+
+            _orderRepoMock
+                .Setup(x => x.AddAsync(It.IsAny<Order>()))
+                .Returns(Task.CompletedTask);
+
+            _mapperMock
+                .Setup(x => x.Map<OrderDto>(It.IsAny<Order>()))
+                .Returns(new OrderDto());
+
+            // Act
+            await _orderService.CreateOrderAsync(
+                new CreateOrderDto(),
+                10);
+
+            // Assert
+            _orderRepoMock.Verify(
+                x => x.AddAsync(It.Is<Order>(o =>
+                    o.Subtotal == 50 &&
+                    o.TaxAmount == 7 &&
+                    o.ShippingCost == 10 &&
+                    o.TotalAmount == 67)),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateOrderAsync_Should_Rollback_When_ExceptionOccurs()
+        {
+            // Arrange
+            var transaction = new Mock<IDisposable>();
+
+            _orderRepoMock.Setup(x => x.BeginTransactionAsync())
+                .ReturnsAsync(transaction.Object);
+
+            _cartRepoMock
+                .Setup(x => x.GetCartWithItemsAsync(10))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act & Assert
+            await Assert.ThrowsAsync<Exception>(
+                () => _orderService.CreateOrderAsync(
+                    new CreateOrderDto(),
+                    10));
+
+            _orderRepoMock.Verify(
+                x => x.RollbackTransactionAsync(),
+                Times.Once);
+
+            _orderRepoMock.Verify(
+                x => x.CommitTransactionAsync(),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateOrderStatusAsync_Should_Throw_When_OrderDoesNotExist()
+        {
+            // Arrange
+            _orderRepoMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync((Order?)null);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _orderService.UpdateOrderStatusAsync(
+                    1,
+                    "Processing"));
+        }
+
+        [Fact]
+        public async Task UpdateOrderStatusAsync_Should_Throw_When_StatusTransitionIsInvalid()
+        {
+            // Arrange
+            var order = new Order
+            {
+                Id = 1,
+                Status = OrderStatus.Pending
+            };
+
+            _orderRepoMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(order);
+
+            // Pending -> Delivered is invalid
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _orderService.UpdateOrderStatusAsync(
+                    1,
+                    "Delivered"));
+        }
+
+
     }
 }
