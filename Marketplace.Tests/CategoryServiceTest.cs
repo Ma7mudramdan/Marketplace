@@ -75,7 +75,7 @@ namespace Marketplace.Tests
             Assert.True(category.IsActive);
             _categoryRepositoryMock.Verify(
                 x => x.AddAsync(category)
-                , Times.Once );
+                , Times.Once);
         }
 
         [Fact]
@@ -102,7 +102,7 @@ namespace Marketplace.Tests
 
             _categoryRepositoryMock.Verify(
                 x => x.AddAsync(category)
-                , Times.Once );
+                , Times.Once);
 
             _categoryRepositoryMock.Verify(
                 x => x.AddAsync(category)
@@ -118,7 +118,7 @@ namespace Marketplace.Tests
                 .ReturnsAsync(false);
 
             await Assert.ThrowsAsync<ArgumentException>(
-                () =>  _categoryService.CreateCategoryAsync(dto));
+                () => _categoryService.CreateCategoryAsync(dto));
         }
 
         [Fact]
@@ -147,6 +147,219 @@ namespace Marketplace.Tests
             _categoryRepositoryMock.Verify(
                 x => x.Update(category),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task GetActiveCategoriesAsync_Should_ReturnMappedCategories()
+        {
+            var categories = new List<Category>
+            {
+                new Category(),
+                new Category()
+            };
+
+            var expectedDtos = new List<CategoryDto>
+            {
+                new CategoryDto(),
+                new CategoryDto()
+            };
+
+            _categoryRepositoryMock.Setup(x => x.GetActiveCategoriesAsync())
+                .ReturnsAsync(categories);
+
+            _mapperMock.Setup(m => m.Map<IEnumerable<CategoryDto>>(categories))
+                .Returns(expectedDtos);
+
+            var result = await _categoryService.GetActiveCategoriesAsync();
+
+            Assert.Same(expectedDtos, result);
+        }
+
+        [Fact]
+        public async Task GetAllCategoriesAsync_Should_ReturnMappedCategories()
+        {
+            var categories = new List<Category>();
+            var expected = new List<CategoryDto>();
+
+            _categoryRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(categories);
+
+            _mapperMock
+                .Setup(x => x.Map<IEnumerable<CategoryDto>>(categories))
+                .Returns(expected);
+
+            var result = await _categoryService.GetAllCategoriesAsync();
+
+            Assert.Same(expected, result);
+        }
+
+        [Fact]
+        public async Task GetCategoryByIdAsync_Should_ReturnMappedCategory_WhenFound()
+        {
+            var category = new Category();
+            var expected = new CategoryDto();
+
+            _categoryRepositoryMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(category);
+
+            _mapperMock
+                .Setup(x => x.Map<CategoryDto>(category))
+                .Returns(expected);
+
+            var result = await _categoryService.GetCategoryByIdAsync(1);
+
+            Assert.Same(expected, result);
+        }
+
+        [Fact]
+        public async Task GetCategoryByIdAsync_Should_ReturnNull_WhenNotFound()
+        {
+            _categoryRepositoryMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync((Category?)null);
+
+            var result = await _categoryService.GetCategoryByIdAsync(1);
+
+            Assert.Null(result);
+        }
+
+
+        [Fact]
+        public async Task GetCategoryHierarchyAsync_Should_ReturnMappedCategories()
+        {
+            var categories = new List<Category>();
+            var expected = new List<CategoryDto>();
+
+            _categoryRepositoryMock
+                .Setup(x => x.GetCategoryHierarchyAsync())
+                .ReturnsAsync(categories);
+
+            _mapperMock
+                .Setup(x => x.Map<IEnumerable<CategoryDto>>(categories))
+                .Returns(expected);
+
+            var result = await _categoryService.GetCategoryHierarchyAsync();
+
+            Assert.Same(expected, result);
+        }
+
+        [Fact]
+        public async Task GetSubCategoriesAsync_Should_ReturnMappedCategories()
+        {
+            var categories = new List<Category>();
+            var expected = new List<CategoryDto>();
+
+            _categoryRepositoryMock
+                .Setup(x => x.GetSubCategoriesAsync(1))
+                .ReturnsAsync(categories);
+
+            _mapperMock
+                .Setup(x => x.Map<IEnumerable<CategoryDto>>(categories))
+                .Returns(expected);
+
+            var result = await _categoryService.GetSubCategoriesAsync(1);
+
+            Assert.Same(expected, result);
+        }
+
+        [Fact]
+        public async Task HasSubCategoriesAsync_Should_ReturnTrue()
+        {
+            _categoryRepositoryMock
+                .Setup(x => x.HasSubCategoriesAsync(1))
+                .ReturnsAsync(true);
+
+            var result = await _categoryService.HasSubCategoriesAsync(1);
+
+            Assert.True(result);
+        }
+
+        [Fact]
+        public async Task HasSubCategoriesAsync_Should_ReturnFalse()
+        {
+            _categoryRepositoryMock
+                .Setup(x => x.HasSubCategoriesAsync(1))
+                .ReturnsAsync(false);
+
+            var result = await _categoryService.HasSubCategoriesAsync(1);
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task UpdateCategoryAsync_Should_UpdateCategory()
+        {
+            var dto = new CreateCategoryDto
+            {
+                Name = "Updated Category"
+            };
+
+            var category = new Category();
+            var expected = new CategoryDto();
+
+            _categoryRepositoryMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(category);
+
+            _mapperMock
+                .Setup(x => x.Map(dto, category))
+                .Returns(category);
+
+            _mapperMock
+                .Setup(x => x.Map<CategoryDto>(category))
+                .Returns(expected);
+
+            var result = await _categoryService.UpdateCategoryAsync(1, dto);
+
+            Assert.Same(expected, result);
+            Assert.NotEqual(default, category.UpdatedAt);
+
+            _categoryRepositoryMock.Verify(
+                x => x.Update(category),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateCategoryAsync_Should_Throw_WhenCategoryNotFound()
+        {
+            _categoryRepositoryMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync((Category?)null);
+
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _categoryService.UpdateCategoryAsync(1, new CreateCategoryDto()));
+
+            Assert.Equal("Category not found", exception.Message);
+        }
+
+        [Fact]
+        public async Task UpdateCategoryAsync_Should_Throw_WhenParentDoesNotExist()
+        {
+            var category = new Category();
+
+            var dto = new CreateCategoryDto
+            {
+                ParentCategoryId = 99
+            };
+
+            _categoryRepositoryMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(category);
+
+            _categoryRepositoryMock
+                .Setup(x => x.ExistsAsync(99))
+                .ReturnsAsync(false);
+
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _categoryService.UpdateCategoryAsync(1, dto));
+
+            Assert.Equal("Parent category does not exist", exception.Message);
+
+            _categoryRepositoryMock.Verify(
+                x => x.Update(It.IsAny<Category>()),
+                Times.Never);
         }
     }
 }
