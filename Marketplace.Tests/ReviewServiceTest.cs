@@ -191,5 +191,209 @@ namespace Marketplace.Tests
             Assert.False(createdReview.IsApproved);
             Assert.True(createdReview.IsActive);
         }
+
+        [Fact]
+        public async Task UpdateReviewAsync_Should_Throw_WhenNotFound()
+        {
+            _reviewRepositoryMock.Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync((Review?)null);
+
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _reviewService.UpdateReviewAsync(1, new CreateReviewDto()));
+        }
+
+        [Fact]
+        public async Task UpdateReviewAsync_Should_Throw_WhenReviewApproved()
+        {
+            var review = new Review { Id = 1, IsApproved = true };
+
+            _reviewRepositoryMock.Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(review);
+
+
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _reviewService.UpdateReviewAsync(1,
+                new CreateReviewDto()));
+
+            Assert.Equal("Cannot update an approved review", exception.Message);
+
+            _reviewRepositoryMock.Verify(
+                x => x.Update(It.IsAny<Review>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateReviewAsync_Should_UpdateUnapprovedReview()
+        {
+            var review = new Review
+            {
+                Rating = 2,
+                Comment = "Bad",
+                IsApproved = false
+            };
+
+            var dto = new CreateReviewDto
+            {
+                Rating = 5,
+                Comment = "Good",
+                ProductId = 10
+            };
+
+            _reviewRepositoryMock.Setup(x => x.GetByIdAsync(1))
+                 .ReturnsAsync(review);
+
+            _mapperMock.Setup(m => m.Map<ReviewDto>(It.IsAny<Review>()))
+                .Returns(new ReviewDto());
+
+            await  _reviewService.UpdateReviewAsync(1, dto);
+
+            Assert.Equal(5, review.Rating);
+            Assert.Equal("Good", review.Comment);
+
+            _reviewRepositoryMock.Verify(
+                x => x.Update(It.IsAny<Review>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteReviewAsync_Should_SoftDeleteReview()
+        {
+            var review = new Review { IsActive = true };
+
+            _reviewRepositoryMock.Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(review);
+
+            await _reviewService.DeleteReviewAsync(1);
+
+            Assert.False(review.IsActive);
+        }
+
+        [Fact]
+        public async Task DeleteReviewAsync_Should_Throw_WhenNotFound()
+        {
+            _reviewRepositoryMock
+                .Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync((Review?)null);
+
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _reviewService.DeleteReviewAsync(1));
+
+            Assert.Equal("Review not found", exception.Message);
+        }
+
+        [Fact]
+        public async Task ApproveReviewAsync_Should_ApproveReview()
+        {
+            var review = new Review { IsApproved = false };
+
+            _reviewRepositoryMock.Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(review);
+
+            await _reviewService.ApproveReviewAsync(1);
+
+            Assert.True(review.IsApproved);
+            _reviewRepositoryMock.Verify(
+                x => x.Update(It.IsAny<Review>()),
+                Times.Once);
+
+        }
+
+        [Fact]
+        public async Task ApproveReviewAsync_Should_Throw_WhenNotFound()
+        {
+            _reviewRepositoryMock.Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync((Review?)null);
+
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _reviewService.ApproveReviewAsync(1));
+        }
+
+        [Fact]
+        public async Task GetProductAverageRatingAsync_Should_ReturnAverage()
+        {
+            _productRepositoryMock
+                .Setup(x => x.ExistsAsync(10))
+                .ReturnsAsync(true);
+
+            _reviewRepositoryMock
+                .Setup(x => x.GetProductAverageRatingAsync(10))
+                .ReturnsAsync(4.5);
+
+            var result =
+                await _reviewService.GetProductAverageRatingAsync(10);
+
+            Assert.Equal(4.5, result);
+        }
+
+        [Fact]
+        public async Task GetProductAverageRatingAsync_Should_Throw_WhenProductNotFound()
+        {
+            _productRepositoryMock
+                .Setup(x => x.ExistsAsync(10))
+                .ReturnsAsync(false);
+
+            var exception =
+                await Assert.ThrowsAsync<ArgumentException>(
+                    () => _reviewService.GetProductAverageRatingAsync(10));
+
+            Assert.Equal("Product not found", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetReviewCountAsync_Should_ReturnCount()
+        {
+            _productRepositoryMock
+                .Setup(x => x.ExistsAsync(10))
+                .ReturnsAsync(true);
+
+            _reviewRepositoryMock
+                .Setup(x => x.GetReviewCountAsync(10))
+                .ReturnsAsync(8);
+
+            var result =
+                await _reviewService.GetReviewCountAsync(10);
+
+            Assert.Equal(8, result);
+        }
+
+        [Fact]
+        public async Task GetReviewCountAsync_Should_Throw_WhenProductNotFound()
+        {
+            _productRepositoryMock
+                .Setup(x => x.ExistsAsync(10))
+                .ReturnsAsync(false);
+
+            var exception =
+                await Assert.ThrowsAsync<ArgumentException>(
+                    () => _reviewService.GetReviewCountAsync(10));
+
+            Assert.Equal("Product not found", exception.Message);
+        }
+
+        [Fact]
+        public async Task HasUserReviewedProductAsync_Should_ReturnTrue_WhenReviewExists()
+        {
+            _reviewRepositoryMock
+                .Setup(x => x.GetUserProductReviewAsync(7, 10))
+                .ReturnsAsync(new Review());
+
+            var result =
+                await _reviewService.HasUserReviewedProductAsync(7, 10);
+
+            Assert.True(result);
+        }
+
+        [Fact]
+        public async Task HasUserReviewedProductAsync_Should_ReturnFalse_WhenReviewDoesNotExist()
+        {
+            _reviewRepositoryMock
+                .Setup(x => x.GetUserProductReviewAsync(7, 10))
+                .ReturnsAsync((Review?)null);
+
+            var result =
+                await _reviewService.HasUserReviewedProductAsync(7, 10);
+
+            Assert.False(result);
+        }
     }
 }
