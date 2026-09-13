@@ -255,12 +255,7 @@ namespace Marketplace.Application.Services
         {
             try
             {
-                if (order.Status == OrderStatus.Cancelled)
-                {
-                    _logger.LogWarning("No order items to restore stock for order {OrderId}", order?.Id);
-                    return;
-                }
-
+               
                 foreach (var orderItem in order.OrderItems)
                 {
                     var product = await _productRepository.GetByIdAsync(orderItem.ProductId);
@@ -295,7 +290,7 @@ namespace Marketplace.Application.Services
             {
                 ["Pending"] = new[] { "Processing", "Cancelled" },
                 ["Processing"] = new[] { "Shipped", "Cancelled" },
-                ["Shipped"] = new[] { "Delivered" },
+                ["Shipped"] = new[] { "Delivered","Refunded" },
                 ["Delivered"] = new[] {""},
                 ["Cancelled"] = new[] {""} ,
                 ["Refunded"] = new[] {""} ,

@@ -585,6 +585,310 @@ namespace Marketplace.Tests
                     "Delivered"));
         }
 
+        [Fact]
+        public async Task UpdateOrderStatusAsync_Should_Update_Pending_To_Processing()
+        {
+            //Arrange 
+            var order = new Order { Id = 1, Status = OrderStatus.Pending };
+            var orderDto = new OrderDto { Id = 1, Status = OrderStatus.Processing.ToString() };
 
+            _orderRepoMock.Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(order);
+
+            _mapperMock.Setup(m => m.Map<OrderDto>(order))
+                .Returns(orderDto);
+
+            //Act 
+            var res = await _orderService.UpdateOrderStatusAsync(1, "Processing");
+
+            //Assert
+            res.Should().NotBeNull();
+            Assert.Equal("Processing",res.Status);
+            Assert.Equal(OrderStatus.Processing, order.Status);
+            _orderRepoMock.Verify(x => x.Update(order),Times.Once());
+            
+        }
+
+        [Fact]
+        public async Task UpdateOrderStatusAsync_Should_Set_ShippedAt_When_Shipped()
+        {
+            //Arrange 
+            var order = new Order { Id = 1, Status = OrderStatus.Processing };
+            var orderDto = new OrderDto { Id = 1, Status = OrderStatus.Shipped.ToString() };
+
+            _orderRepoMock.Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(order);
+
+            _mapperMock.Setup(m => m.Map<OrderDto>(order))
+                .Returns(orderDto);
+
+            //Act 
+            var res = await _orderService.UpdateOrderStatusAsync(1, "Shipped");
+
+            //Assert 
+            res.Should().NotBeNull();
+            Assert.NotNull(order.ShippedAt);
+            Assert.Null(order.DeliveredAt);
+        }
+
+        [Fact]
+        public async Task UpdateOrderStatusAsync_Should_Set_DeliveredAt_When_Delivered()
+        {
+            //Arrange 
+            var order = new Order { Id = 1, Status = OrderStatus.Shipped };
+            var orderDto = new OrderDto { Id = 1, Status = OrderStatus.Delivered.ToString() };
+
+            _orderRepoMock.Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(order);
+
+            _mapperMock.Setup(m => m.Map<OrderDto>(order))
+                .Returns(orderDto);
+
+            //Act 
+            var res = await _orderService.UpdateOrderStatusAsync(1, OrderStatus.Delivered.ToString());
+
+            //Assert 
+            res.Should().NotBeNull();
+            Assert.NotNull(order.DeliveredAt);
+            Assert.Equal(OrderStatus.Delivered, order.Status);
+
+        }
+
+        [Fact]
+        public async Task UpdateOrderStatusAsync_Should_Restore_Stock_When_Refunded()
+        {
+            // Arrange
+            var order = new Order
+            {
+                Id = 1,
+                Status = OrderStatus.Shipped,
+                OrderItems = new List<OrderItem>
+            {
+                new OrderItem
+                {
+                    ProductId = 5,
+                    Quantity = 2
+                }
+            }
+            };
+
+            var product = new Product
+            {
+                Id = 5,
+                StockQuantity = 3,
+                SoldQuantity = 5
+            };
+
+            _orderRepoMock.Setup(x => x.GetByIdAsync(1))
+                .ReturnsAsync(order);
+
+            _productRepoMock.Setup(x => x.GetByIdAsync(5))
+                .ReturnsAsync(product);
+
+            _mapperMock.Setup(m => m.Map<OrderDto>(order))
+                .Returns(new OrderDto());
+
+            //Act 
+            var res = await _orderService.UpdateOrderStatusAsync(1, OrderStatus.Refunded.ToString());
+
+            //Assert
+            Assert.Equal(5, product.StockQuantity);
+            Assert.Equal(3, product.SoldQuantity);
+        }
+
+        [Fact]
+        public async Task CancelOrderAsync_Should_Throw_When_OrderDoesNotExist()
+        {
+            // Arrange
+            _orderRepoMock
+                .Setup(x => x.GetOrderWithItemsAsync(1))
+                .ReturnsAsync((Order?)null);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _orderService.CancelOrderAsync(1, 10));
+        }
+
+        [Fact]
+        public async Task CancelOrderAsync_Should_Throw_When_OrderIsDelivered()
+        {
+            //Arrange
+            var order = new Order { Id = 1, CustomerId = 5, Status = OrderStatus.Delivered };
+
+            _orderRepoMock.Setup(x => x.GetOrderWithItemsAsync(1))
+                .ReturnsAsync(order);
+
+            //Act & Assert 
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _orderService.CancelOrderAsync(1, 5));
+        }
+
+        [Fact]
+        public async Task CancelOrderAsync_Should_Throw_When_OrderAlreadyCancelled()
+        {
+            //Arrange
+            var order = new Order { Id = 1, CustomerId = 5, Status = OrderStatus.Cancelled };
+
+            _orderRepoMock.Setup(x => x.GetOrderWithItemsAsync(1))
+                .ReturnsAsync(order);
+
+            //Act & Assert 
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _orderService.CancelOrderAsync(1, 5));
+        }
+
+        [Fact]
+        public async Task CancelOrderAsync_Should_Throw_When_UserIsNotOrderOwner()
+        {
+            // Arrange
+            var order = new Order
+            {
+                Id = 1,
+                CustomerId = 10,
+                Status = OrderStatus.Pending
+            };
+
+            _orderRepoMock
+                .Setup(x => x.GetOrderWithItemsAsync(1))
+                .ReturnsAsync(order);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _orderService.CancelOrderAsync(1, 11));
+        }
+
+        [Fact]
+        public async Task CancelOrderAsync_Should_RestoreStock_And_CancelOrder()
+        {
+            // Arrange
+            var order = new Order
+            {
+                Id = 1,
+                CustomerId = 10,
+                Status = OrderStatus.Pending,
+                OrderItems = new List<OrderItem>
+            {
+                new OrderItem
+                {
+                    ProductId = 5,
+                    Quantity = 2
+                }
+            }
+            };
+
+            var product = new Product
+            {
+                Id = 5,
+                StockQuantity = 3,
+                SoldQuantity = 5
+            };
+
+            _orderRepoMock
+                .Setup(x => x.GetOrderWithItemsAsync(1))
+                .ReturnsAsync(order);
+
+            _productRepoMock
+                .Setup(x => x.GetByIdAsync(5))
+                .ReturnsAsync(product);
+
+            // Act
+            await _orderService.CancelOrderAsync(1, 10);
+
+            // Assert
+            Assert.Equal(OrderStatus.Cancelled, order.Status);
+
+            Assert.Equal(5, product.StockQuantity);
+            Assert.Equal(3, product.SoldQuantity);
+
+            _productRepoMock.Verify(
+                x => x.Update(product),
+                Times.Once);
+
+            _orderRepoMock.Verify(
+                x => x.Update(order),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task OrderExistsAsync_Should_Return_True_When_OrderExists()
+        {
+            // Arrange
+            _orderRepoMock
+                .Setup(x => x.ExistsAsync(1))
+                .ReturnsAsync(true);
+
+            // Act
+            var result = await _orderService.OrderExistsAsync(1);
+
+            // Assert
+            Assert.True(result);
+
+            _orderRepoMock.Verify(
+                x => x.ExistsAsync(1),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task OrderExistsAsync_Should_Return_False_When_OrderDoesNotExist()
+        {
+            // Arrange
+            _orderRepoMock
+                .Setup(x => x.ExistsAsync(1))
+                .ReturnsAsync(false);
+
+            // Act
+            var result = await _orderService.OrderExistsAsync(1);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task GetTotalSalesAsync_Should_Return_TotalSales()
+        {
+            //Arrange 
+            _orderRepoMock.Setup(x => x.GetTotalSalesAsync(1))
+                .ReturnsAsync(5000m);
+
+            //Act 
+            var res = await _orderService.GetTotalSalesAsync(1);
+
+            //Assert 
+            Assert.Equal(5000, res);
+        }
+
+        [Fact]
+        public async Task GetOrderCountAsync_Should_Return_OrderCount()
+        {
+            // Arrange
+            _orderRepoMock
+                .Setup(x => x.GetOrderCountAsync(null))
+                .ReturnsAsync(20);
+
+            // Act
+            var result = await _orderService.GetOrderCountAsync();
+
+            // Assert
+            Assert.Equal(20, result);
+        }
+
+        [Fact]
+        public async Task GetOrderCountAsync_Should_Pass_SellerId_To_Repository()
+        {
+            // Arrange
+            _orderRepoMock
+                .Setup(x => x.GetOrderCountAsync(5))
+                .ReturnsAsync(7);
+
+            // Act
+            var result = await _orderService.GetOrderCountAsync(5);
+
+            // Assert
+            Assert.Equal(7, result);
+
+            _orderRepoMock.Verify(
+                x => x.GetOrderCountAsync(5),
+                Times.Once);
+        }
     }
 }
